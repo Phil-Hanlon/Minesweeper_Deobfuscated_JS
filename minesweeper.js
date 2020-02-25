@@ -29,7 +29,7 @@ function Minesweeper(driver_array, get_board) {
 
     var counters_object_instance = new counters_object();
 
-    var H;
+    var game_is_over;
 
     var h;
 
@@ -47,13 +47,13 @@ function Minesweeper(driver_array, get_board) {
 
     var f;
 
-    var t;
+    var right_clicking;
 
-    var touchpoint_identifier;
+    var touch_start;
 
     var y;
 
-    initialization_function();
+    bind_controls();
 
     this.newGame = function () {
         var Y, W;
@@ -105,7 +105,7 @@ function Minesweeper(driver_array, get_board) {
 
         create_num_mines_html_classnames();
 
-        H = false;
+        game_is_over = false;
 
         h = false;
 
@@ -117,11 +117,11 @@ function Minesweeper(driver_array, get_board) {
 
         f = false;
 
-        t = false;
+        right_clicking = false;
 
         isMouseDownForCtrlClick = false;
 
-        touchpoint_identifier = null;
+        touch_start = null;
 
         y = false;
 
@@ -776,7 +776,7 @@ function Minesweeper(driver_array, get_board) {
 
                     counters_object_instance.stop();
 
-                    H = true;
+                    game_is_over = true;
 
                     for (row_index = 1; row_index <= num_rows; row_index++) {
 
@@ -828,7 +828,7 @@ function Minesweeper(driver_array, get_board) {
 
                     counters_object_instance.stop();
 
-                    H = true;
+                    game_is_over = true;
 
                     current_num_mines = 0;
 
@@ -1002,7 +1002,7 @@ function Minesweeper(driver_array, get_board) {
                  * @param {'X' in function c} V 
                  * @param {'W' in function c} U 
                  */
-                function left_click_logic(square_object, square_class_1, square_class_2) {
+                function square_touch_logic(square_object, square_class_1, square_class_2) {
 
                     // if the square is hidden,
                     if (!square_object.isRevealed()) {
@@ -1037,7 +1037,7 @@ function Minesweeper(driver_array, get_board) {
                  * @param {e.g. "square blank"} X 
                  * @param {e.g. "square question"} W 
                  */
-                function c(Y, square_class_1, square_class_2) {
+                function handle_square_touch(Y, square_class_1, square_class_2) {
 
                     var row_offset, collumn_offset;
 
@@ -1045,92 +1045,115 @@ function Minesweeper(driver_array, get_board) {
 
                         for (collumn_offset = -1; collumn_offset <= 1; collumn_offset++) {
 
-                            left_click_logic(square_object_array_1[Y.getRow() + row_offset][Y.getCol() + collumn_offset], square_class_1, square_class_2)
+                            square_touch_logic(square_object_array_1[Y.getRow() + row_offset][Y.getCol() + collumn_offset], square_class_1, square_class_2)
                         }
                     }
                 }
 
-                function initialization_function() {
+                function bind_controls() {
 
                     var W = false;
 
-                    var Y;
+                    /**
+                     * If this is defined, the player is holding down on this square!
+                     * Place a question mark!
+                     */
+                    var last_touch_target;
 
-                    function V(action) {
+                    function handle_touch(action) {
 
-                        if (action.type === "touchmove" && !aa(action)) {
+                        // If the player dragged his/her finger,
+                        // Do absolutely nothing!
+                        if (action.type === "touchmove" && !check_touch_no_drag(action)) {
 
                             return
                         }
 
-                        var ab = U(action);
+                        var touch_target = get_touch_target(action);
 
-                        if (ab != Y && !z) {
+                        if (touch_target != last_touch_target && !z) {
 
-                            if (t) {
+                            // If the user is right-clicking
+                            if (right_clicking) {
 
-                                if (Y) {
+                                // When the user lifts his/her finger,
+                                if (last_touch_target) {
 
-                                    c(square_object_array_2[Y.id], "square blank", "square question")
+                                    // Toggle the question mark
+                                    handle_square_touch(square_object_array_2[last_touch_target.id], "square blank", "square question")
                                 }
-                                if (is_square(ab)) {
 
-                                    c(square_object_array_2[ab.id], "square open0", "square questionpressed")
+                                // When the user first puts his/her finger down, 
+                                if (is_square(touch_target)) {
+
+                                    // Sets the square's appearance while it's being held down
+                                    handle_square_touch(square_object_array_2[touch_target.id], "square open0", "square questionpressed")
                                 }
                             }
+
                             else {
 
-                                if (Y) {
+                                if (last_touch_target) {
 
-                                    left_click_logic(square_object_array_2[Y.id], "square blank", "square question")
+                                    square_touch_logic(square_object_array_2[last_touch_target.id], "square blank", "square question")
                                 }
-                                if (is_square(ab)) {
-                                    left_click_logic(square_object_array_2[ab.id], "square open0", "square questionpressed")
+                                if (is_square(touch_target)) {
+                                    square_touch_logic(square_object_array_2[touch_target.id], "square open0", "square questionpressed")
                                 }
                             }
                         }
 
-                        Y = (is_square(ab)) ? ab : undefined
+                        last_touch_target = (is_square(touch_target)) ? touch_target : undefined
                     }
 
 
-                    function Z(ac) {
+                    function is_face_touched(touch_event) {
 
-                        if (ac.type === "touchmove" && !aa(ac)) { 
+                        if (touch_event.type === "touchmove" && !check_touch_no_drag(touch_event)) { 
                             
                             return 
                         } 
                         
-                        var ab = U(ac);
+                        var touch_target = get_touch_target(touch_event);
 
-                        document.getElementById("face").className = (ab.id == "face") ? "facepressed" : "facesmile"
+                        document.getElementById("face").className = (touch_target.id == "face") ? "facepressed" : "facesmile"
                     } 
                     
-                    function U(ab) {
 
-                        if (ab.type === "touchmove" || ab.type === "touchend") {
+                    function get_touch_target(touch_event) {
 
-                            var ac = ab.originalEvent.changedTouches[0];
+                        if (touch_event.type === "touchmove" || touch_event.type === "touchend") {
 
-                            return document.elementFromPoint(ac.clientX, ac.clientY)
+                            var finger_drag_or_lift = touch_event.originalEvent.changedTouches[0];
+
+                            return document.elementFromPoint(finger_drag_or_lift.clientX, finger_drag_or_lift.clientY)
                         } 
                         
                         else { 
 
-                            return ab.target 
+                            return touch_event.target 
                         }
                     } 
                     
-                    function aa(action) {
+                    /**
+                     * @param {the touch-action in question} action 
+                     * 
+                     * Did the player touch the screen and lift without dragging?
+                     * @returns true if the player did NOT drag
+                     */
+                    function check_touch_no_drag(action) {
 
-                        if (!touchpoint_identifier) { 
+                        if (!touch_start) { 
 
                             return false 
                         } 
                         
-                        var ac = (action.originalEvent.changedTouches[0].identifier === touchpoint_identifier);
+                        /**
+                         * Did the player touch and lift without dragging?
+                         */
+                        var touch_no_drag = (action.originalEvent.changedTouches[0].identifier === touch_start);
 
-                        return ac
+                        return touch_no_drag
                     } 
                     
                     is_old_Internet_Explorer = $.browser.msie && parseFloat($.browser.version) <= 7;
@@ -1147,45 +1170,56 @@ function Minesweeper(driver_array, get_board) {
                     $(document).bind("scroll", X);
 
                     function X() {
-                        if (!touchpoint_identifier) { return } touchpoint_identifier = null;
+                        if (!touch_start) { return } touch_start = null;
 
-                        if (Y) {
-                            left_click_logic(square_object_array_2[Y.id], "square blank", "square question");
+                        if (last_touch_target) {
+                            square_touch_logic(square_object_array_2[last_touch_target.id], "square blank", "square question");
 
-                            Y = undefined
-                        } if (!H) { document.getElementById("face").className = "facesmile" }
-                    } $(document).bind("touchstart", function (ad) {
+                            last_touch_target = undefined
+                        } if (!game_is_over) { document.getElementById("face").className = "facesmile" }
+                    } 
+                    
+                    $(document).bind("touchstart", function (touch_event) {
+
                         $(document).unbind("mousedown").unbind("mouseup");
 
-                        if (touchpoint_identifier || y) { return } touchpoint_identifier = ad.originalEvent.changedTouches[0].identifier;
+                        if (touch_start || y) { 
+                            
+                            return 
+                        } 
+                        
+                        touch_start = touch_event.originalEvent.changedTouches[0].identifier;
 
-                        if (is_square(ad.target) && !H) {
-                            var ac = touchpoint_identifier;
 
-                            var ab = ad.target;
+                        if (is_square(touch_event.target) && !game_is_over) {
+
+                            var ac = touch_start;
+
+                            var touch_event_target = touch_event.target;
 
                             setTimeout(function () {
-                                if (ac === touchpoint_identifier && ab === Y) {
-                                    square_object_array_2[ab.id].flag(true);
 
-                                    touchpoint_identifier = null;
+                                if (ac === touch_start && touch_event_target === last_touch_target) {
+                                    square_object_array_2[touch_event_target.id].flag(true);
+
+                                    touch_start = null;
 
                                     document.getElementById("face").className = "facesmile"
                                 }
                             }, 500);
 
-                            $(document).bind("touchmove", V);
+                            $(document).bind("touchmove", handle_touch);
 
                             document.getElementById("face").className = "faceooh";
 
-                            Y = undefined;
+                            last_touch_target = undefined;
 
-                            V(ad)
+                            handle_touch(touch_event)
                         } else {
-                            if (ad.target.id == "face") {
+                            if (touch_event.target.id == "face") {
                                 W = true;
 
-                                $(document).bind("touchmove", V);
+                                $(document).bind("touchmove", handle_touch);
 
                                 document.getElementById("face").className = "facepressed"
                             }
@@ -1193,13 +1227,13 @@ function Minesweeper(driver_array, get_board) {
                     });
 
                     $(document).bind("touchend", function (ac) {
-                        if (!aa(ac)) { return } touchpoint_identifier = null;
+                        if (!check_touch_no_drag(ac)) { return } touch_start = null;
 
-                        $(document).unbind("touchmove", V).unbind("touchmove", Z);
+                        $(document).unbind("touchmove", handle_touch).unbind("touchmove", is_face_touched);
 
-                        if (W || !H) { document.getElementById("face").className = "facesmile" } var ab = U(ac);
+                        if (W || !game_is_over) { document.getElementById("face").className = "facesmile" } var ab = get_touch_target(ac);
 
-                        if (is_square(ab) && !H) {
+                        if (is_square(ab) && !game_is_over) {
                             
                             square = square_object_array_2[ab.id];
 
@@ -1253,27 +1287,27 @@ function Minesweeper(driver_array, get_board) {
 
                         f = click_button.left || f;
 
-                        t = click_button.right || t;
+                        right_clicking = click_button.right || right_clicking;
 
-                        if (click_event.ctrlKey && is_square(click_event.target) && !H) {
+                        if (click_event.ctrlKey && is_square(click_event.target) && !game_is_over) {
 
                             square_object_array_2[click_event.target.id].flag();
 
                             isMouseDownForCtrlClick = true
                         } else {
-                            
+
                             if (f) {
-                                if (is_square(click_event.target) && !H) {
+                                if (is_square(click_event.target) && !game_is_over) {
 
                                     click_event.preventDefault();
 
-                                    $(document).bind("mousemove", V);
+                                    $(document).bind("mousemove", handle_touch);
 
                                     document.getElementById("face").className = "faceooh";
 
-                                    Y = undefined;
+                                    last_touch_target = undefined;
 
-                                    V(click_event)
+                                    handle_touch(click_event)
                                 }
 
                                 else {
@@ -1283,7 +1317,7 @@ function Minesweeper(driver_array, get_board) {
 
                                         W = true;
 
-                                        $(document).bind("mousemove", Z);
+                                        $(document).bind("mousemove", is_face_touched);
 
                                         document.getElementById("face").className = "facepressed"
                                     }
@@ -1291,7 +1325,7 @@ function Minesweeper(driver_array, get_board) {
 
                             }
 
-                            else { if (t) { if (is_square(click_event.target) && !H) { square_object_array_2[click_event.target.id].flag() } return false } }
+                            else { if (right_clicking) { if (is_square(click_event.target) && !game_is_over) { square_object_array_2[click_event.target.id].flag() } return false } }
                         }
 
                     });
@@ -1305,7 +1339,7 @@ function Minesweeper(driver_array, get_board) {
                             return 
                         } 
                             
-                        t = false
+                        right_clicking = false
                     });
 
                     $(document).mouseup(function (ae) {
@@ -1319,7 +1353,7 @@ function Minesweeper(driver_array, get_board) {
                         if (isMouseDownForCtrlClick) {
                             f = false;
 
-                            t = false;
+                            right_clicking = false;
 
                             isMouseDownForCtrlClick = false;
 
@@ -1329,21 +1363,21 @@ function Minesweeper(driver_array, get_board) {
                         if (ab.left) {
                             f = false;
 
-                            $(document).unbind("mousemove", V).unbind("mousemove", Z);
+                            $(document).unbind("mousemove", handle_touch).unbind("mousemove", is_face_touched);
 
-                            if (W || !H) { 
+                            if (W || !game_is_over) { 
                                 
                                 document.getElementById("face").className = "facesmile" 
                             } 
                             
-                            if (is_square(ae.target) && !H) {
+                            if (is_square(ae.target) && !game_is_over) {
 
                                 ad = square_object_array_2[ae.target.id];
 
-                                if (t) {
+                                if (right_clicking) {
                                     z = true;
 
-                                    c(square_object_array_2[ae.target.id], "square blank", "square question");
+                                    handle_square_touch(square_object_array_2[ae.target.id], "square blank", "square question");
 
                                     ad.reveal9()
                                 } 
@@ -1369,18 +1403,18 @@ function Minesweeper(driver_array, get_board) {
                             } else { if (ae.target.id == "face" && W) { the_game.newGame() } } W = false
 
                         } if (ab.right) {
-                            t = false;
+                            right_clicking = false;
 
-                            if (is_square(ae.target) && !H) {
+                            if (is_square(ae.target) && !game_is_over) {
                                 if (f) {
                                     ad = square_object_array_2[ae.target.id];
 
                                     z = true;
 
-                                    c(ad, "square blank", "square question");
+                                    handle_square_touch(ad, "square blank", "square question");
 
                                     ad.reveal9()
-                                } else { z = false } if (!H) { document.getElementById("face").className = "facesmile" }
+                                } else { z = false } if (!game_is_over) { document.getElementById("face").className = "facesmile" }
                             }
                         }
                     });
@@ -1399,7 +1433,7 @@ function Minesweeper(driver_array, get_board) {
 
                             // Some keypress that functions as a right-click
                             if (ab.which == 32) {
-                                if (hoveredSquareId && !H) {
+                                if (hoveredSquareId && !game_is_over) {
                                     square = square_object_array_2[hoveredSquareId];
 
                                     // Reveals 3x3 if it's a revealed square
